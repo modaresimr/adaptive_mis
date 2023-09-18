@@ -1,4 +1,4 @@
-"""CLI interface for project_name project.
+"""CLI interface for adaptive_mis project.
 
 Be creative! do whatever you want!
 
@@ -12,7 +12,7 @@ Be creative! do whatever you want!
 def main():  # pragma: no cover
     """
     The main function executes on commands:
-    `python -m project_name` and `$ project_name `.
+    `python -m adaptive_mis` and `$ adaptive_mis `.
 
     This is your program's entry point.
 
