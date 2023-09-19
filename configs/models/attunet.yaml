@@ -1,0 +1,5 @@
+model:
+  class: "adaptive_mis.models.attunet.AttU_Net"
+  title: "AttU_Net"
+  load_weights: false
+  params:

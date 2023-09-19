@@ -1,0 +1,6 @@
+class: "adaptive_mis.models._uctransnet.UCTransNet_ACDA.UCTransNet_ACDA"
+title: "UCTransNet"
+load_weights: false
+params:
+  adaptive_kernel_min_size: 3
+  adaptive_kernel_max_size: 7

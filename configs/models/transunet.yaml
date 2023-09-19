@@ -1,0 +1,7 @@
+model:
+  class: "adaptive_mis.models._transunet.vit_seg_modeling.VisionTransformer"
+  # class: 'models._transunet.vit_seg_modeling_c4.VisionTransformer'
+
+  title: "VisionTransformer"
+  load_weights: false
+  params:

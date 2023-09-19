@@ -1,0 +1,28 @@
+data_loader:
+  train: 
+    batch_size: 16
+    shuffle: true
+    num_workers: 8
+    pin_memory: true
+  validation: 
+    batch_size: 16
+    shuffle: false
+    num_workers: 8
+    pin_memory: true
+  test:
+    batch_size: 16
+    shuffle: false
+    num_workers: 4
+    pin_memory: false
+training:
+  optimizer:
+    name: 'Adam'
+    params:
+      lr: 0.0001
+  criterion:
+    name: "DiceLoss"
+    params: {}
+  scheduler:
+    factor: 0.5
+    patience: 10
+  epochs: 100

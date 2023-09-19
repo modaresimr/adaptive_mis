@@ -1,0 +1,11 @@
+model:
+  class: "adaptive_mis.models.adaptive.AdaptiveModel"
+  title: "AdaptUNet"
+  load_weights: false
+  params:
+    adaptive_layer:
+      class: "adaptive_mis.models.adaptive.AdaptiveConv"
+      params:
+        adaptive_kernel_min_size: 3
+        adaptive_kernel_max_size: 3
+    main_model: !include unet_3.yaml

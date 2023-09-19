@@ -1,28 +1,23 @@
-"""CLI interface for adaptive_mis project.
-
-Be creative! do whatever you want!
-
-- Install click or typer and create a CLI app
-- Use builtin argparse
-- Start a web application
-- Import things from your .base module
-"""
+import argparse
+import configparser
+from . import pipeline
+from adaptive_mis.common.config import load_config
 
 
 def main():  # pragma: no cover
-    """
-    The main function executes on commands:
-    `python -m adaptive_mis` and `$ adaptive_mis `.
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dataset', help='Path to dataset config')
+    parser.add_argument('--model', help='Path to model config')
+    parser.add_argument('--main', default=".\configs\common.yaml", help='Path to other config')
+    args = parser.parse_args()
 
-    This is your program's entry point.
+    main_config = load_config(f"!include {args.main}")
 
-    You can change this function to do whatever you want.
-    Examples:
-        * Run a test suite
-        * Run a server
-        * Do some other stuff
-        * Run a command line application (Click, Typer, ArgParse)
-        * List all available tasks
-        * Run an application (Flask, FastAPI, Django, etc.)
+    data = f"""
+model: !include {args.model}
+dataset: !include {args.dataset}
     """
-    print("This will do something")
+    config = load_config(data)
+    main_config.update(config)
+
+    pipeline.execute(main_config)

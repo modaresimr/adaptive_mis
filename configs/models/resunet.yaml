@@ -1,0 +1,4 @@
+class: "adaptive_mis.models._resunet.res_unet.ResUnet"
+title: "ResUnet"
+load_weights: false
+params:

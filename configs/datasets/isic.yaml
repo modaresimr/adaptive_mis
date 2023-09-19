@@ -1,0 +1,5 @@
+title: "ISIC2018"
+class: "adaptive_mis.dataset.ISIC2018Dataset"
+params:
+  datadir: "datasets/ISIC2018"
+  image_size: 224

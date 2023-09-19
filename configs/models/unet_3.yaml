@@ -1,0 +1,6 @@
+class: "adaptive_mis.models.unet.UNet"
+load_weights: false
+title: "UNet"
+params:
+  with_bn: false
+  first_kernel_size: 3

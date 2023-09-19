@@ -1,0 +1,6 @@
+model:
+  class: "adaptive_mis.models.multiresunet.MultiResUnet"
+  title: "MultiResUnet"
+  load_weights: false
+  params:
+    filters: 32
