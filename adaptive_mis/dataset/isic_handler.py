@@ -46,6 +46,8 @@ class ISIC2018Dataset(Dataset):
         self.img_dirs = glob.glob(f"{self.imgs_dir}/*.{self.input_fex}")
         self.data_ids = [d.split(self.data_prefix)[1].split(f".{self.input_fex}")[0] for d in self.img_dirs]
         self.one_hot = one_hot
+        self.in_channels = 3
+        self.num_classes = 2
         self.convert()
 
     def convert(self):
@@ -88,15 +90,19 @@ class ISIC2018Dataset(Dataset):
             Y.append(msk)
         self.X = torch.stack(X)
         self.Y = torch.stack(Y)
-        np.save(f"{self.data_dir}/X_tr_{INPUT_SIZE}x{INPUT_SIZE}.npy", X.numpy())
-        np.save(f"{self.data_dir}/Y_tr_{INPUT_SIZE}x{INPUT_SIZE}.npy", Y.numpy())
+        np.save(f"{self.data_dir}/X_tr_{INPUT_SIZE}x{INPUT_SIZE}.npy", self.X.numpy())
+        np.save(f"{self.data_dir}/Y_tr_{INPUT_SIZE}x{INPUT_SIZE}.npy", self.Y.numpy())
 
     def get_img_by_id(self, id):
+        if self.X is not None:
+            return self.X[id]
         img_dir = os.path.join(self.imgs_dir, f"{self.data_prefix}{id}.{self.input_fex}")
         img = read_image(img_dir, ImageReadMode.RGB)
         return img
 
     def get_msk_by_id(self, id):
+        if self.Y is not None:
+            return self.Y[id]
         msk_dir = os.path.join(self.msks_dir, f"{self.data_prefix}{id}{self.target_postfix}.{self.target_fex}")
         msk = read_image(msk_dir, ImageReadMode.GRAY)
         return msk
@@ -105,7 +111,8 @@ class ISIC2018Dataset(Dataset):
         return len(self.data_ids)
 
     def __getitem__(self, idx):
-        data_id = self.data_ids[idx]
+        # data_id = self.data_ids[idx]
+        data_id = idx
         img = self.get_img_by_id(data_id)
         msk = self.get_msk_by_id(data_id)
 

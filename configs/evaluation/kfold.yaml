@@ -1,0 +1,6 @@
+class: adaptive_mis.evaluation.KFold
+title: "Split"
+params:
+  seed: 1
+  k: 5
+  test_size: .2

@@ -18,7 +18,8 @@ def class_by_name(clazz):
 
 def loader(config, module=None, **other_args):
     cfg = config[module].copy() if module else config.copy()
-    item = class_by_name(cfg.pop('class'))(**{**cfg['params'], **other_args})
+    params = cfg['params'] or {}
+    item = class_by_name(cfg.pop('class'))(**{**params, **other_args})
     item.title = cfg['title']
     return item
 

@@ -368,15 +368,15 @@ class DecoderCup(nn.Module):
 
 
 class VisionTransformer(nn.Module):
-    def __init__(self, config=None, img_size=224, num_classes=21843, zero_head=False, vis=False):
+    def __init__(self, config=None, img_size=224, out_channels=21843, zero_head=False, vis=False):
         super(VisionTransformer, self).__init__()
         config = CONFIGS["R50-ViT-B_16"]
-        config.n_classes = num_classes
+        config.n_classes = out_channels
         config.n_skip = 3
         if "R50-ViT-B_16".find('R50') != -1:
             config.patches.grid = (int(img_size / 16), int(img_size / 16))
 
-        self.num_classes = num_classes
+        self.num_classes = out_channels
         self.zero_head = zero_head
         self.classifier = config.classifier
         self.transformer = Transformer(config, img_size, vis)

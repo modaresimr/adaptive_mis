@@ -1,0 +1,51 @@
+data_loader:
+  test:
+    batch_size: 16
+    num_workers: 4
+    pin_memory: false
+    shuffle: false
+  train:
+    batch_size: 16
+    num_workers: 8
+    pin_memory: true
+    shuffle: true
+  validation:
+    batch_size: 16
+    num_workers: 8
+    pin_memory: true
+    shuffle: false
+dataset:
+  class: adaptive_mis.dataset.ISIC2018Dataset
+  params:
+    datadir: datasets/ISIC2018
+    image_size: 224
+  title: ISIC2018
+evaluation:
+  class: adaptive_mis.evaluation.Split
+  params:
+    seed: 1
+    test_size: 0.3
+    train_size: 0.5
+    val_size: 0.2
+  title: Split
+model:
+  class: adaptive_mis.models.unet.UNet
+  load_weights: false
+  params:
+    first_kernel_size: 3
+    with_bn: false
+  title: UNet
+run:
+  save_dir: ./results/isic/unet_3-2023-09-19T20-05-31
+training:
+  criterion:
+    name: DiceLoss
+    params: {}
+  epochs: 100
+  optimizer:
+    name: Adam
+    params:
+      lr: 0.0001
+  scheduler:
+    factor: 0.5
+    patience: 10
