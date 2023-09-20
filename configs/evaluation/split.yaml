@@ -2,6 +2,5 @@ class: adaptive_mis.evaluation.Split
 title: "Split"
 params:
   seed: 1
-  train_size: .5
-  val_size: .2
-  test_size: .3
+  val_size: .50
+  test_size: .96

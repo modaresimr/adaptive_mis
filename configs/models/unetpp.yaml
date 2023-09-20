@@ -1,6 +1,5 @@
-model:
-  class: "adaptive_mis.models.unetpp.NestedUNet"
-  title: "NestedUNet"
-  load_weights: false
-  params:
-    deep_supervision: false
+class: "adaptive_mis.models.unetpp.NestedUNet"
+title: "NestedUNet"
+load_weights: false
+params:
+  deep_supervision: false

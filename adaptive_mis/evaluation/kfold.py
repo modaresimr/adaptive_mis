@@ -10,6 +10,9 @@ class KFold:
         self.test_size = test_size
         self.seed = seed
 
+    def count(self):
+        return self.k
+
     def next(self):
         train_val_dataset, test_dataset = train_test_split(self.dataset, test_size=self.test_size, random_state=self.seed)
         test_loader = DataLoader(test_dataset, **self.cfg_dataloader['test'])

@@ -16,6 +16,7 @@ def main():  # pragma: no cover
     parser.add_argument('--model', help='Path to model config')
     parser.add_argument('--main', default="./configs/common.yaml", help='Path to other config')
     parser.add_argument('--eval', default="./configs/evaluation/split.yaml", help='Path to evaluation config')
+    parser.add_argument('--comet', default=True, help='Log to comet')
     args = parser.parse_args()
 
     main_config = load_config(f"!include {args.main}")
@@ -26,9 +27,9 @@ model: !include {args.model}
 dataset: !include {args.dataset}
 evaluation: !include {args.eval}
 run:
+    comet: {args.comet}
     save_dir: ./results/{log}
     """
     config = load_config(data)
     main_config.update(config)
-
     pipeline.execute(main_config)

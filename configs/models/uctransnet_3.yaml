@@ -1,6 +1,5 @@
-model:
-  class: "adaptive_mis.models._uctransnet.UCTransNet.UCTransNet"
-  title: "UCTransNet"
-  load_weights: false
-  params:
-    first_kernel_size: 3
+class: "adaptive_mis.models._uctransnet.UCTransNet.UCTransNet"
+title: "UCTransNet"
+load_weights: false
+params:
+  first_kernel_size: 3

@@ -1,5 +1,4 @@
-model:
-  class: "adaptive_mis.models._missformer.MISSFormer.MISSFormer"
-  title: "MISSFormer"
-  load_weights: false
-  params:
+class: "adaptive_mis.models._missformer.MISSFormer.MISSFormer"
+title: "MISSFormer"
+load_weights: false
+params:

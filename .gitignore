@@ -3,6 +3,7 @@ save_data
 save_data1
 logs1
 datasets/*
+results
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

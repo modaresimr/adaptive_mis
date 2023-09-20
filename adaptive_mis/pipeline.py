@@ -1,5 +1,7 @@
 from __future__ import print_function, division
+from sklearn.metrics import ConfusionMatrixDisplay
 
+from IPython.display import display
 from adaptive_mis.train.csv_logger import CSVLogger
 from adaptive_mis.train.tqdm_callback import TqdmCallback
 from .train import EarlyStopping
@@ -55,7 +57,7 @@ def setup_comet(config):
         workspace="modaresimr",
         log_code=True,
         log_graph=True,
-        disabled=True,
+        disabled=not config['run'].get('comet', False),
         auto_param_logging=True,  # Can be True or False
         auto_histogram_tensorboard_logging=True,  # Can be True or False
         auto_metric_logging=True  # Can be True or False
@@ -79,7 +81,7 @@ def log_sample_image(dataloader, mode):
         img = sample['image']
         msk = sample['mask']
         # show_sbs(img[0], msk[0, 1])
-        experiment.log_image(img[0], image_channels="first", name=f"{mode}/img")
+        experiment.log_image(img[0], image_channels="first", name=f"{mode}/img",)
         experiment.log_image(msk[0], image_channels="first", name=f"{mode}/gt")
         break
 
@@ -93,6 +95,7 @@ def get_metrics(num_classes):
         params = {}
     metrics = torchmetrics.MetricCollection(
         [
+            torchmetrics.ConfusionMatrix(num_classes=num_classes),
             torchmetrics.F1Score(**params),
             torchmetrics.Accuracy(**{**params, 'average': 'micro'}),
             torchmetrics.Dice(**params),
@@ -125,6 +128,8 @@ def execute(config):
     print(json.dumps(config, indent=2))
     print(20 * "~-", "\n")
     setup_comet(config)
+    os.makedirs(config['run']['save_dir'], exist_ok=True)
+    save_config(config, config['run']['save_dir'] + "/config.yaml")
 
     set_seed()
 
@@ -138,9 +143,11 @@ def execute(config):
     dataset = loader(config, 'dataset')
     num_classes = dataset.num_classes
     evaluation = loader(config, 'evaluation', dataset=dataset, cfg_dataloader=config['data_loader'], num_classes=num_classes)
+    final_res = []
+    cms = []
     for tr_dataloader, vl_dataloader, te_dataloader, fold in evaluation.next():
-        print(f"~~~~~~~~~~~~~~~ Fold {fold} ~~~~~~~~~~~~~~~~~")
-        save_dir = config['run']['save_dir'] + "_{fold}"
+        print(f"~~~~~~~~~~~~~~~ Fold {fold}/{evaluation.count()-1} ~~~~~~~~~~~~~~~~~")
+        save_dir = f"{config['run']['save_dir']}/k{evaluation.count()-1}_{fold}"
         os.makedirs(save_dir, exist_ok=True)
         # g = torch.Generator()
         # g.manual_seed(0)
@@ -150,14 +157,12 @@ def execute(config):
         # vl_dataloader = DataLoader(vl_dataset, worker_init_fn=seed_worker, generator=g, **config['data_loader']['validation'])
         # te_dataloader = DataLoader(te_dataset, worker_init_fn=seed_worker, generator=g, **config['data_loader']['test'])
 
-        log_sample_image(tr_dataloader, "train")
-        log_sample_image(vl_dataloader, "validation")
-        log_sample_image(te_dataloader, "test")
-
-        # %% [markdown]
-        # ### Device
-
-        # %%
+        with experiment.train():
+            log_sample_image(tr_dataloader, "train")
+        with experiment.validate():
+            log_sample_image(vl_dataloader, "validation")
+        with experiment.test():
+            log_sample_image(te_dataloader, "test")
 
         # %%
         # download weights
@@ -173,7 +178,7 @@ def execute(config):
         print("Number of parameters:", number_of_parameters)
         experiment.log_parameter("Number of parameters", number_of_parameters)
         experiment.set_model_graph(str(model))
-        save_config(config, save_dir + "/config.yaml")
+
         model_path = f"{save_dir}/model_state_dict.pt"
 
         if config['model']['load_weights']:
@@ -184,7 +189,6 @@ def execute(config):
         optimizer = globals()[tr_prms['optimizer']['name']](model.parameters(), **tr_prms['optimizer']['params'])
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', **tr_prms['scheduler'])
         # optimizer=loader(config,"optimzier")
-        # %%
         with experiment.train():
             best_model, model, res = train(
                 model,
@@ -195,42 +199,58 @@ def execute(config):
                 scheduler,
                 save_dir=save_dir,
                 save_file_id=None,
-                num_classes=num_classes
+                num_classes=num_classes,
+                fold=fold
             )
-            log_model(experiment, best_model, model_name="TheModel")
+            log_model(experiment, best_model, model_name=f"Model_f{fold}")
 
-        # %%
         with experiment.test():
             te_metrics = test(best_model, te_dataloader, num_classes, config)
-            metrics = te_metrics.compute()
-            experiment.log_metrics(metrics)
+            metrics = serialize_metrics(te_metrics.compute())
+            cm = metrics.pop('test_ConfusionMatrix')
+            cms.append(cm)
+            experiment.log_metrics(metrics, prefix=f"{fold}")
+            experiment.log_confusion_matrix(matrix=cm, file_name=f"test_{fold}", title=f"test_{fold}", labels=dataset.class_names)
 
-            print("TEST====", metrics)
-            metrics_dic = {k.replace("test_metrics/", ""): float(v.cpu()) for k, v in metrics.items()}
-            df = pd.DataFrame(metrics_dic, index=[0])
-            from IPython.display import display
+            # print("TEST====", metrics)
+            metrics_dic = {k.replace("test_", ""): v for k, v in metrics.items()}
+            metrics_dic = {'fold': fold, **metrics_dic}
+            final_res.append(metrics_dic)
+            df = pd.DataFrame([metrics_dic]).set_index("fold")
             display(df)
-            with open(f"{save_dir}/test_final_result.json", 'w') as f:
+            with open(f"{save_dir}/test.json", 'w') as f:
                 json.dump(metrics_dic, f, indent=4)
 
             experiment.end()
+        # df = pd.DataFrame({k.replace("test_metrics/", ""): v for k, v in metrics.items()}, index=[0])
 
-            metrics
+        # display(df)
+            experiment.log_table(f"result{fold}.json", tabular_data=df, headers=True)
 
-        # %%
-        print(metrics)
-        df = pd.DataFrame({k.replace("test_metrics/", ""): v for k, v in metrics.items()}, index=[0])
-        from IPython.display import display
-        display(df)
-        experiment.log_table("result.json", tabular_data=df, headers=True)
+    avg_cm = np.average(cms, axis=0)
+    df_cm = pd.DataFrame(cm, index=dataset.class_names, columns=dataset.class_names)
+    print(df_cm)
+    ConfusionMatrixDisplay(avg_cm, display_labels=dataset.class_names).plot()
+    plt.savefig(save_dir + '/confusion_matrix.png')
+    experiment.log_confusion_matrix(matrix=avg_cm, title=f"avg_{fold}", labels=dataset.class_names)
 
-    # %%
+    df = pd.DataFrame(final_res).set_index("fold")
+    df.loc['avg'] = df.mean()
+    df.to_csv(f"{config['run']['save_dir']}/full_test.csv")
+    display(df)
+    experiment.log_table(f"result_full.json", tabular_data=df, headers=True)
+    with open(config['run']['save_dir'] + "/completed", 'w') as f:
+        f.write("1")
 
 
-def make_serializeable_metrics(computed_metrics):
+def serialize_metrics(computed_metrics):
     res = {}
     for k, v in computed_metrics.items():
-        res[k] = float(v.cpu().detach().numpy())
+        v = v.cpu().detach().numpy()
+        try:
+            res[k] = float(v)
+        except:
+            res[k] = v
     return res
 
 
@@ -265,14 +285,15 @@ def validate(model, criterion, vl_dataloader, valid_metrics, num_classes, config
 
         losses = []
         cnt = 0.
-
-        for batch, batch_data in enumerate(vl_dataloader):
+        tq = tqdm(vl_dataloader, disable=True)
+        tq.set_description('Checking Val...')
+        for batch, batch_data in enumerate(tq):
             cnt += batch_data['mask'].shape[0]
 
             loss, preds_, msks_ = process_batch(batch_data, model, device, num_classes, config, criterion)
             losses.append(loss.item())
             evaluator.update(preds_, msks_)
-
+        tq.close()
         loss = np.sum(losses) / cnt
         # metrics = evaluator.compute()
 
@@ -286,9 +307,11 @@ def train(
         config,
         optimizer,
         scheduler,
-        save_dir='./',
-        save_file_id=None,
-        num_classes=2
+        num_classes,
+        fold,
+        save_dir,
+        save_file_id
+
 ):
     criterion = get_loss()
 
@@ -302,7 +325,7 @@ def train(
     best_model = None
     best_result = {}
     best_vl_loss = np.Inf
-    early_stopper = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=20, restore_best_weights=True)
+    early_stopper = EarlyStopping(monitor='vl_loss', mode='min', verbose=1, patience=20, restore_best_weights=True)
     fieldnames = ['epoch', 'tr_loss', 'vl_loss']  # Add more field names based on your metrics
     csv_logger = CSVLogger(f'{save_dir}/training_log.csv', fieldnames=fieldnames, separator=';', append=True)
     tqdmcallback = TqdmCallback(verbose=1)
@@ -314,11 +337,11 @@ def train(
         model.train()
         train_metrics.reset()
 
-        tr_iterator = tqdm(enumerate(tr_dataloader))
+        # tr_iterator = tqdm()
         tr_losses = []
         cnt = 0
 
-        for batch, batch_data in tr_iterator:
+        for batch, batch_data in enumerate(tr_dataloader):
             imgs = batch_data['image'].to(device)
             cnt += imgs.shape[0]
 
@@ -329,20 +352,26 @@ def train(
             tr_losses.append(loss.item())
 
             train_metrics.update(preds_, msks_)
-            tr_iterator.set_description(
-                f"Training) ep:{epoch:03d}, batch:{batch + 1:04d} -> curr_ml:{np.sum(tr_losses) / cnt:0.5f}, mbatch_l:{tr_losses[-1] / imgs.shape[0]:0.5f}")
-            tqdmcallback.on_batch_end(batch)
+            descr = f"Train) ep:{epoch:03d}, batch:{batch + 1:04d} -> curr_ml:{np.sum(tr_losses) / cnt:0.5f}, mbatch_l:{tr_losses[-1] / imgs.shape[0]:0.5f}"
+            # tr_iterator.set_description(descr)
+            tqdmcallback.on_batch_end(batch, descr)
 
         tr_loss = np.sum(tr_losses) / cnt
-        vl_metrics, vl_loss = validate(model, criterion, vl_dataloader, valid_metrics, num_classes, config, typ='val', epoch=epoch)
+        tr_metrics = serialize_metrics(train_metrics.compute())
+        tr_cm = tr_metrics.pop('train_ConfusionMatrix')
+
+        with experiment.validate():
+            vl_metrics, vl_loss = validate(model, criterion, vl_dataloader, valid_metrics, num_classes, config)
+            vl_metrics = serialize_metrics(vl_metrics.compute())
+            vl_cm = vl_metrics.pop('valid_ConfusionMatrix')
+            experiment.log_confusion_matrix(matrix=vl_cm, epoch=epoch, step=epoch, title=f"val_{fold}", file_name=f"val_{fold}")
 
         epoch_info = {
             'tr_loss': tr_loss,
             'vl_loss': vl_loss,
-            'tr_metrics': make_serializeable_metrics(train_metrics.compute()),  # The method 'make_serializeable_metrics' should be defined or replaced
-            'vl_metrics': make_serializeable_metrics(vl_metrics.compute()),   # The method 'make_serializeable_metrics' should be defined or replaced
+            'tr_metrics': tr_metrics,
+            'vl_metrics': vl_metrics,
         }
-
         csv_logger.log({'epoch': epoch, 'tr_loss': tr_loss, 'vl_loss': vl_loss})
 
         early_stopper(epoch_info, model)
@@ -353,12 +382,13 @@ def train(
             best_model = model
             best_vl_loss = vl_loss
             best_result = epoch_info
-
         # 'experiment' should be defined or replaced
         epochs_info.append(epoch_info)
-        train_metrics.reset()
+        # train_metrics.reset()
         scheduler.step(vl_loss)
-        tqdmcallback.on_epoch_end(epoch)
+        info = f"trl={tr_loss:0.5f} vll={vl_loss:0.5f} best_vll={best_vl_loss:0.5f}"
+        tqdmcallback.on_epoch_end(epoch, info)
+        experiment.log_confusion_matrix(matrix=tr_cm, epoch=epoch, step=epoch, title=f"train_{fold}", file_name=f"train_{fold}")
 
     # Save results and models
     res = {
@@ -367,12 +397,13 @@ def train(
         'epochs_info': epochs_info,
         'best_result': best_result
     }
-
-    with open(os.path.join(config['model']['save_dir'], f"{save_file_id + '_' if save_file_id else ''}result.json"), "w") as write_file:
+    experiment.log_curve("train_loss_{fold}", [i for i, e in enumerate(epochs_info)], [e['tr_loss'] for e in epochs_info])
+    experiment.log_curve("val_loss_{fold}", [i for i, e in enumerate(epochs_info)], [e['vl_loss'] for e in epochs_info])
+    with open(os.path.join(save_dir, f"{save_file_id + '_' if save_file_id else ''}result.json"), "w") as write_file:
         json.dump(res, write_file, indent=4)
 
-    torch.save(model.state_dict(), os.path.join(config['model']['save_dir'], "last_model_state_dict.pt"))
-    torch.save(best_model.state_dict(), os.path.join(config['model']['save_dir'], "best_model_state_dict.pt"))
+    torch.save(model.state_dict(), os.path.join(save_dir, "last_model_state_dict.pt"))
+    torch.save(best_model.state_dict(), os.path.join(save_dir, "best_model_state_dict.pt"))
 
     return best_model, model, res
 
@@ -382,8 +413,9 @@ def test(model, te_dataloader, num_classes, config):
     test_metrics = get_metrics(num_classes).clone(prefix='test_').to(device)
     with torch.no_grad():
         evaluator = test_metrics.clone().to(device)
-
-        for batch_data in tqdm(te_dataloader):
+        tq = tqdm(te_dataloader)
+        tq.set_description('Testing...')
+        for batch_data in tq:
             _, preds_, msks_ = process_batch(batch_data, model, device, num_classes, config)
             evaluator.update(preds_, msks_)
 
