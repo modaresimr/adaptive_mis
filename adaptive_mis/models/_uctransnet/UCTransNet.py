@@ -10,7 +10,7 @@ from .CTrans import ChannelTransformer
 
 
 class UCTransNet(nn.Module):
-    def __init__(self, config=uct_config.get_CTranS_config(), in_channels=3, out_channels=1, img_size=224, vis=False, first_kernel_size=3):
+    def __init__(self, config=uct_config.get_CTranS_config(), in_channels=3, out_channels=1, img_size=224, vis=False, first_kernel_size=3, **kwargs):
         super().__init__()
 
         self.vis = vis

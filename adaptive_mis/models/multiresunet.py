@@ -111,7 +111,7 @@ class Respath(nn.Module):
 
 
 class MultiResUnet(nn.Module):
-    def __init__(self, in_channels: int, filters: int = 32, out_channels: int = 1) -> None:
+    def __init__(self, in_channels: int, filters: int = 32, out_channels: int = 1, **kwargs) -> None:
         """
         Arguments:
         channels - input image channels

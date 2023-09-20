@@ -344,7 +344,7 @@ class MyDecoderLayer(nn.Module):
 
 
 class MISSFormer(nn.Module):
-    def __init__(self, out_channels=9, in_channels=3, token_mlp_mode="mix_skip", encoder_pretrained=True):
+    def __init__(self, out_channels=9, in_channels=3, token_mlp_mode="mix_skip", encoder_pretrained=True, **kwargs):
         super().__init__()
 
         reduction_ratios = [8, 4, 2, 1]

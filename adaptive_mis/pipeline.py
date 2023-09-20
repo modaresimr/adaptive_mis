@@ -148,7 +148,7 @@ def execute(config):
     cms = []
     for tr_dataloader, vl_dataloader, te_dataloader, fold in evaluation.next():
         print(f"~~~~~~~~~~~~~~~ Fold {fold}/{evaluation.count()-1} ~~~~~~~~~~~~~~~~~")
-        save_dir = f"{config['run']['save_dir']}/k{evaluation.count()-1}_{fold}"
+        save_dir = f"{config['run']['save_dir']}/{fold}"
         os.makedirs(save_dir, exist_ok=True)
         # g = torch.Generator()
         # g.manual_seed(0)

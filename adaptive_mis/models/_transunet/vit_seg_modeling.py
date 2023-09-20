@@ -368,7 +368,7 @@ class DecoderCup(nn.Module):
 
 
 class VisionTransformer(nn.Module):
-    def __init__(self, config=None, img_size=224, out_channels=21843, zero_head=False, vis=False):
+    def __init__(self, config=None, img_size=224, out_channels=21843, zero_head=False, vis=False, **kwargs):
         super(VisionTransformer, self).__init__()
         config = CONFIGS["R50-ViT-B_16"]
         config.n_classes = out_channels

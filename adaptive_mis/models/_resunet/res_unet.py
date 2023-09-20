@@ -6,7 +6,7 @@ from .modules import ResidualConv, Upsample
 
 
 class ResUnet(nn.Module):
-    def __init__(self, in_channels, out_channels, filters=[64, 128, 256, 512]):
+    def __init__(self, in_channels, out_channels, filters=[64, 128, 256, 512], **kwargs):
         super(ResUnet, self).__init__()
 
         self.input_layer = nn.Sequential(

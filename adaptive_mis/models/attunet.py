@@ -7,7 +7,7 @@ from torch.nn import init
 
 
 class AttU_Net(nn.Module):
-    def __init__(self, in_channels=3, out_channels=1):
+    def __init__(self, in_channels=3, out_channels=1, **kwargs):
         super(AttU_Net, self).__init__()
 
         self.Maxpool = nn.MaxPool2d(kernel_size=2, stride=2)
