@@ -63,6 +63,7 @@ def setup_comet(config):
         auto_metric_logging=True  # Can be True or False
     )
     experiment.add_tag(key)
+    experiment.add_tag(config.get('model', {}).get('title') or 'None')
     experiment.add_tag(config.get('model', {}).get('class') or 'None')
     experiment.log_parameters(config)
     return experiment
