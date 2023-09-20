@@ -1,5 +1,5 @@
 class: "adaptive_mis.models.adaptive.AdaptiveModel"
-title: "AdaptUCTransnet"
+title: "ACDA-UCTransnet"
 load_weights: false
 params:
   adaptive_layer: !include ./configs/models/adaptive/acda.yaml

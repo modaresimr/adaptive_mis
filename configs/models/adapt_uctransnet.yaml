@@ -1,5 +1,5 @@
-class: "adaptive_mis.models.adapt_unet.AdaptUNet"
-title: "AdaptUNet"
+class: "adaptive_mis.models.adaptive.AdaptiveModel"
+title: "AdaptUCTransnet"
 load_weights: false
 params:
   adaptive_layer: !include ./configs/models/adaptive/adaptive.yaml
