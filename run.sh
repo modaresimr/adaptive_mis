@@ -1,6 +1,4 @@
 #!/bin/bash
 #pip install -e .
-pip install sklearn
-python3 -c "import sklearn"
-python3 --version
-#adaptive_mis $@
+export 'PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512'
+adaptive_mis $@
