@@ -5,7 +5,7 @@ from torch import nn
 class UNet(nn.Module):
     def __init__(self, in_channels, out_channels, with_bn=False, first_kernel_size=3, **kwargs):
         super().__init__()
-        init_channels = 4
+        init_channels = 32
         self.out_channels = out_channels
 
         self.en_1 = DoubleConv(in_channels, init_channels, with_bn, kernel_size=first_kernel_size)
