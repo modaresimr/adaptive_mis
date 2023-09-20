@@ -53,7 +53,7 @@ def setup_comet(config):
     key = config.get('run', {}).get('key') or 'None'
     experiment = Experiment(
         api_key="8v599AWHmFIfK0YPnIeHWUuwE",
-        project_name=config.get('comet', {}).get('project_name') or 'general',
+        project_name=config.get('dataset', {}).get('title') or 'general',
         workspace="modaresimr",
         log_code=True,
         log_graph=True,

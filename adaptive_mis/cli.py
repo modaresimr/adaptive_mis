@@ -16,7 +16,7 @@ def main():  # pragma: no cover
     parser.add_argument('--model', help='Path to model config')
     parser.add_argument('--main', default="./configs/common.yaml", help='Path to other config')
     parser.add_argument('--eval', default="./configs/evaluation/split.yaml", help='Path to evaluation config')
-    parser.add_argument('--comet', default=False, help='Log to comet')
+    parser.add_argument('--comet', default=True, help='Log to comet')
     args = parser.parse_args()
 
     main_config = load_config(f"!include {args.main}")
