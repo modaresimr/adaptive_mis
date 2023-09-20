@@ -33,6 +33,8 @@ import torch.nn.functional as F
 class ISIC2018Dataset(Dataset):
     def __init__(self, datadir, image_size=224, one_hot=True, **kwargs):
         # pre-set variables
+        self.X = []
+        self.Y = []
         self.image_size = image_size
         self.data_prefix = "ISIC_"
         self.target_postfix = "_segmentation"
