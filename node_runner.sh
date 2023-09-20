@@ -14,15 +14,20 @@ configs=(
 )
 mkdir -p logs
 
+dataset=./configs/datasets/isic.yaml
 
 for conf in "${configs[@]}"; do
     while : ; do
-        srun -N 1-1 --gpus=1 nvidia-smi
+        squeue
+        srun -N 1-1 --gpus=1 cat /etc/hostname
         if [ $? -eq 0 ]; then
             name=$(basename "$conf" .yaml)
             current_date=$(date +"%Y%m%d-%H%M%S")
-            log="logs/%j_${name}_${current_date}.log"
-            sbatch -N 1-1 -J "$name" --gpus=1  --output="$log" --error="$log" adaptive_mis --dataset .\configs\datasets\isic.yaml  --model $conf
+            save_dir="results/$(basename $dataset .yaml)/${name}_${current_date}"
+            mkdir -p $save_dir
+            log="$save_dir/out_%j.log"
+            echo srun -N 1-1 -J "$name" --gpus=1  --output="$log" --error="$log" adaptive_mis --dataset $dataset --save_dir $save_dir --model $conf
+            srun -N 1-1 -J "$name" --gpus=1  --output="$log" --error="$log" adaptive_mis --dataset $dataset --save_dir $save_dir --model $conf
             break
         fi
         echo "no free gpu"
