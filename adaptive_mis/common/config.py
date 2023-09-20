@@ -31,8 +31,11 @@ yaml.add_constructor('!include', include_constructor, Loader=yaml.FullLoader)
 
 def load_config(config_filepath):
     try:
-        # with open(config_filepath, 'r') as file:
-        data = yaml.load(config_filepath, Loader=yaml.FullLoader)
+        if os.path.exists(config_filepath):
+            with open(config_filepath, 'r') as file:
+                data = yaml.load(file, Loader=yaml.FullLoader)
+        else:
+            data = yaml.load(config_filepath, Loader=yaml.FullLoader)
 
         return data
     except Exception as e:
