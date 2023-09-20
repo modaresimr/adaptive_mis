@@ -55,10 +55,11 @@ class Conv_ACDA(nn.Module):
     __constants__ = ['kernel_size', 'stride', 'padding', 'num_bases',
                      'bases_grad', 'mode']
 
-    def __init__(self, in_channels, out_channels, adaptive_kernel_max_size=3, adaptive_kernel_min_size=3, inter_kernel_size=3, stride=1, padding=0,
+    def __init__(self, in_channels, out_channels=None, adaptive_kernel_max_size=3, adaptive_kernel_min_size=3, inter_kernel_size=3, stride=1, padding=0,
                  num_bases=6, bias=True, bases_grad=True, dilation=1, groups=1,
-                 mode='mode1', bases_drop=None):
+                 mode='mode1', bases_drop=None, **kwargs):
         super().__init__()
+        out_channels = out_channels or in_channels
         self.adaptive_kernel_max_size = adaptive_kernel_max_size
         self.in_channels = in_channels
         self.inter_kernel_size = inter_kernel_size

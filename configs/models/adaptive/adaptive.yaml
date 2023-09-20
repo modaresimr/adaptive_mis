@@ -1,0 +1,5 @@
+class: "adaptive_mis.models.adaptive.AdaptiveConv"
+title: "AdaptiveConv"
+params:
+  adaptive_kernel_min_size: 3
+  adaptive_kernel_max_size: 9

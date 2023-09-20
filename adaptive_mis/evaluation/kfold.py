@@ -23,7 +23,7 @@ class KFold:
             val_dataset = Subset(train_val_dataset, val_ids)
             train_loader = DataLoader(train_dataset, **self.cfg_dataloader['train'])
             val_loader = DataLoader(val_dataset, **self.cfg_dataloader['validation'])
-            print(f"~~~~~~~~~~~~~~~ Fold {fold} ~~~~~~~~~~~~~~~~~")
+            print(f"~~~~~~~~~~~~~~~ Fold {fold}/{self.k} ~~~~~~~~~~~~~~~~~")
             print(f"Length of trainig_dataset:\t{len(train_dataset)}")
             print(f"Length of validation_dataset:\t{len(val_dataset)}")
             print(f"Length of test_dataset:\t\t{len(test_dataset)}")

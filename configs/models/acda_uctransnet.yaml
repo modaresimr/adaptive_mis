@@ -1,0 +1,6 @@
+class: "adaptive_mis.models.adaptive.AdaptiveModel"
+title: "AdaptUCTransnet"
+load_weights: false
+params:
+  adaptive_layer: !include ./configs/models/adaptive/acda.yaml
+  main_model: !include ./configs/models/uctransnet_3.yaml

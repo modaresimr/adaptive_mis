@@ -20,44 +20,13 @@ except:
 from torch.nn.utils import spectral_norm
 
 
-class Bases_Drop(nn.Module):
-    def __init__(self, p):
-        super(Bases_Drop, self).__init__()
-        self.p = p
-
-    def forward(self, x):
-        if self.training:
-            assert len(x.shape) == 5
-            N, M, L, H, W = x.shape
-            mask = torch.ones((N, 1, L, H, W)).float().cuda() * (1 - self.p)
-            mask = torch.bernoulli(mask) * (1 / (1 - self.p))
-            x = x * mask
-        return x
-
-
-def bases_list(adaptive_kernel_min_size, adaptive_kernel_max_size, num_bases):
-
-    b_list = []
-    for kernel_size in range(adaptive_kernel_min_size, adaptive_kernel_max_size + 1, 2):
-        i = kernel_size // 2 - 1
-        normed_bases, _, _ = calculate_FB_bases(i + 1)
-        normed_bases = normed_bases.transpose().reshape(-1, kernel_size, kernel_size).astype(np.float32)[:num_bases, ...]
-
-        pad = adaptive_kernel_max_size // 2 - (i + 1)
-        bases = torch.Tensor(normed_bases)
-        # print(i, kernel_size, bases.shape, normed_bases.shape, pad, num_bases, adaptive_kernel_max_size)
-        bases = F.pad(bases, (pad, pad, pad, pad, 0, 0)).view(num_bases, adaptive_kernel_max_size * adaptive_kernel_max_size)
-        b_list.append(bases)
-    return torch.cat(b_list, 0)
-
-
 class AdaptiveConv(nn.Module):
     __constants__ = ['kernel_size', 'stride', 'padding', 'num_bases',
                      'bases_grad', 'mode']
 
     def __init__(self, in_channels, adaptive_kernel_max_size=3, adaptive_kernel_min_size=3, inter_kernel_size=3, stride=1, padding=0,
                  num_bases=6, bias=True, bases_grad=True, dilation=1, groups=1,
-                 mode='mode1', bases_drop=None, drop_rate=0.0):
+                 mode='mode1', bases_drop=None, drop_rate=0.0, **kwargs):
         super().__init__()
         self.drop_rate = drop_rate
         self.adaptive_kernel_max_size = adaptive_kernel_max_size
@@ -138,6 +107,37 @@ class AdaptiveConv(nn.Module):
     def extra_repr(self):
         return 'kernel_size={kernel_size}, inter_kernel_size={inter_kernel_size}, stride={stride}, padding={padding}, num_bases={num_bases}' \
             ', bases_grad={bases_grad}, mode={mode}, bases_drop={bases_drop}, in_channels={in_channels}, out_channels={out_channels}'.format(**self.__dict__)
+
+
+class Bases_Drop(nn.Module):
+    def __init__(self, p):
+        super(Bases_Drop, self).__init__()
+        self.p = p
+
+    def forward(self, x):
+        if self.training:
+            assert len(x.shape) == 5
+            N, M, L, H, W = x.shape
+            mask = torch.ones((N, 1, L, H, W)).float().cuda() * (1 - self.p)
+            mask = torch.bernoulli(mask) * (1 / (1 - self.p))
+            x = x * mask
+        return x
+
+
+def bases_list(adaptive_kernel_min_size, adaptive_kernel_max_size, num_bases):
+
+    b_list = []
+    for kernel_size in range(adaptive_kernel_min_size, adaptive_kernel_max_size + 1, 2):
+        i = kernel_size // 2 - 1
+        normed_bases, _, _ = calculate_FB_bases(i + 1)
+        normed_bases = normed_bases.transpose().reshape(-1, kernel_size, kernel_size).astype(np.float32)[:num_bases, ...]
+
+        pad = adaptive_kernel_max_size // 2 - (i + 1)
+        bases = torch.Tensor(normed_bases)
+        # print(i, kernel_size, bases.shape, normed_bases.shape, pad, num_bases, adaptive_kernel_max_size)
+        bases = F.pad(bases, (pad, pad, pad, pad, 0, 0)).view(num_bases, adaptive_kernel_max_size * adaptive_kernel_max_size)
+        b_list.append(bases)
+    return torch.cat(b_list, 0)
 
 
 if __name__ == '__main__':

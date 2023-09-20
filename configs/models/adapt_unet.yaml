@@ -1,0 +1,6 @@
+class: "adaptive_mis.models.adaptive.AdaptiveModel"
+title: "AdaptUNet"
+load_weights: false
+params:
+  adaptive_layer: !include ./configs/models/adaptive/adaptive.yaml
+  main_model: !include ./configs/models/unet_3.yaml

@@ -1,6 +1,7 @@
 class: adaptive_mis.evaluation.Split
-title: "Split"
+title: "Demo"
 params:
   seed: 1
-  val_size: .2
+  slice: .03
+  val_size: .5
   test_size: .3

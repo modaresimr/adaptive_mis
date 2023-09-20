@@ -9,6 +9,51 @@ import torch.nn.functional as F
 from .CTrans import ChannelTransformer
 
 
+class UCTransNet(nn.Module):
+    def __init__(self, config=uct_config.get_CTranS_config(), in_channels=3, out_channels=1, img_size=224, vis=False, first_kernel_size=3):
+        super().__init__()
+
+        self.vis = vis
+        self.n_channels = in_channels
+        self.n_classes = out_channels
+        in_channels = config.base_channel
+        self.inc = ConvBatchNorm(self.n_channels, in_channels, kernel_size=first_kernel_size)
+        self.down1 = DownBlock(in_channels, in_channels * 2, nb_Conv=2)
+        self.down2 = DownBlock(in_channels * 2, in_channels * 4, nb_Conv=2)
+        self.down3 = DownBlock(in_channels * 4, in_channels * 8, nb_Conv=2)
+        self.down4 = DownBlock(in_channels * 8, in_channels * 8, nb_Conv=2)
+        self.mtc = ChannelTransformer(config, vis, img_size,
+                                      channel_num=[in_channels, in_channels * 2, in_channels * 4, in_channels * 8],
+                                      patchSize=config.patch_sizes)
+        self.up4 = UpBlock_attention(in_channels * 16, in_channels * 4, nb_Conv=2)
+        self.up3 = UpBlock_attention(in_channels * 8, in_channels * 2, nb_Conv=2)
+        self.up2 = UpBlock_attention(in_channels * 4, in_channels, nb_Conv=2)
+        self.up1 = UpBlock_attention(in_channels * 2, in_channels, nb_Conv=2)
+        self.outc = nn.Conv2d(in_channels, out_channels, kernel_size=(1, 1), stride=(1, 1))
+        self.last_activation = nn.Sigmoid()  # if using BCELoss
+
+    def forward(self, x):
+        x = x.float()
+        x1 = self.inc(x)
+        x2 = self.down1(x1)
+        x3 = self.down2(x2)
+        x4 = self.down3(x3)
+        x5 = self.down4(x4)
+        x1, x2, x3, x4, att_weights = self.mtc(x1, x2, x3, x4)
+        x = self.up4(x5, x4)
+        x = self.up3(x, x3)
+        x = self.up2(x, x2)
+        x = self.up1(x, x1)
+        if self.n_classes == 1:
+            logits = self.last_activation(self.outc(x))
+        else:
+            logits = self.outc(x)  # if nusing BCEWithLogitsLoss or class>1
+        if self.vis:  # visualize the attention maps
+            return logits, att_weights
+        else:
+            return logits
+
+
 def get_activation(activation_type):
     activation_type = activation_type.lower()
     if hasattr(nn, activation_type):
@@ -101,48 +146,3 @@ class UpBlock_attention(nn.Module):
         skip_x_att = self.coatt(g=up, x=skip_x)
         x = torch.cat([skip_x_att, up], dim=1)  # dim 1 is the channel dimension
         return self.nConvs(x)
-
-
-class UCTransNet(nn.Module):
-    def __init__(self, config=uct_config.get_CTranS_config(), in_channels=3, out_channels=1, img_size=224, vis=False, first_kernel_size=3):
-        super().__init__()
-
-        self.vis = vis
-        self.n_channels = in_channels
-        self.n_classes = out_channels
-        in_channels = config.base_channel
-        self.inc = ConvBatchNorm(in_channels, in_channels, kernel_size=first_kernel_size)
-        self.down1 = DownBlock(in_channels, in_channels * 2, nb_Conv=2)
-        self.down2 = DownBlock(in_channels * 2, in_channels * 4, nb_Conv=2)
-        self.down3 = DownBlock(in_channels * 4, in_channels * 8, nb_Conv=2)
-        self.down4 = DownBlock(in_channels * 8, in_channels * 8, nb_Conv=2)
-        self.mtc = ChannelTransformer(config, vis, img_size,
-                                      channel_num=[in_channels, in_channels * 2, in_channels * 4, in_channels * 8],
-                                      patchSize=config.patch_sizes)
-        self.up4 = UpBlock_attention(in_channels * 16, in_channels * 4, nb_Conv=2)
-        self.up3 = UpBlock_attention(in_channels * 8, in_channels * 2, nb_Conv=2)
-        self.up2 = UpBlock_attention(in_channels * 4, in_channels, nb_Conv=2)
-        self.up1 = UpBlock_attention(in_channels * 2, in_channels, nb_Conv=2)
-        self.outc = nn.Conv2d(in_channels, out_channels, kernel_size=(1, 1), stride=(1, 1))
-        self.last_activation = nn.Sigmoid()  # if using BCELoss
-
-    def forward(self, x):
-        x = x.float()
-        x1 = self.inc(x)
-        x2 = self.down1(x1)
-        x3 = self.down2(x2)
-        x4 = self.down3(x3)
-        x5 = self.down4(x4)
-        x1, x2, x3, x4, att_weights = self.mtc(x1, x2, x3, x4)
-        x = self.up4(x5, x4)
-        x = self.up3(x, x3)
-        x = self.up2(x, x2)
-        x = self.up1(x, x1)
-        if self.n_classes == 1:
-            logits = self.last_activation(self.outc(x))
-        else:
-            logits = self.outc(x)  # if nusing BCEWithLogitsLoss or class>1
-        if self.vis:  # visualize the attention maps
-            return logits, att_weights
-        else:
-            return logits

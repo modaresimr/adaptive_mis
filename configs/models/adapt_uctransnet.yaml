@@ -1,0 +1,6 @@
+class: "adaptive_mis.models.adapt_unet.AdaptUNet"
+title: "AdaptUNet"
+load_weights: false
+params:
+  adaptive_layer: !include ./configs/models/adaptive/adaptive.yaml
+  main_model: !include ./configs/models/uctransnet_3.yaml

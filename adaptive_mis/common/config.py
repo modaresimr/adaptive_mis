@@ -4,9 +4,8 @@ from . import printc
 
 
 def include_constructor(loader, node):
-    """Defines a custom constructor for handling !include directives in a YAML file."""
     filepath = loader.construct_scalar(node)
-    filepath = os.path.join(*filepath.split('\\'))  # Adjust the file path for Windows
+    filepath = os.path.join(*filepath.split('\\'))
     with open(filepath, 'r') as input_file:
         return yaml.load(input_file, Loader=yaml.FullLoader)
 
