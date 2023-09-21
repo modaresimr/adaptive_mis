@@ -219,7 +219,7 @@ def execute(config):
             print(f'best val fold {fold}')
             display(df)
             with open(f"{save_dir}/val.json", 'w') as f:
-                json.dump(metrics_dic, f, indent=4)
+                json.dump(val_metrics_dic, f, indent=4)
 
         with experiment.test():
             te_metrics = test(best_model, te_dataloader, num_classes, config)
