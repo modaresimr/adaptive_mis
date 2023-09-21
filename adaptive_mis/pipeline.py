@@ -211,8 +211,8 @@ def execute(config):
             vl_metrics = res['best_result']['vl_metrics']
             val_metrics_dic = {k.replace("valid_", ""): v for k, v in vl_metrics.items()}
             val_metrics_dic['fold'] = fold
-            val_metrics_dic['vl_loss'] = res['vl_loss']
-            val_metrics_dic['tr_loss'] = res['tr_loss']
+            val_metrics_dic['vl_loss'] = res['best_result']['vl_loss']
+            val_metrics_dic['tr_loss'] = res['best_result']['tr_loss']
             experiment.log_metrics(metrics, prefix=f"best_val_{fold}")
             final_val.append(val_metrics_dic)
             df = pd.DataFrame([val_metrics_dic]).set_index("fold")
