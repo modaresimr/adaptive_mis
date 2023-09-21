@@ -129,8 +129,9 @@ def execute(config):
     print(json.dumps(config, indent=2))
     print(20 * "~-", "\n")
     setup_comet(config)
-    os.makedirs(config['run']['save_dir'], exist_ok=True)
-    save_config(config, config['run']['save_dir'] + "/config.yaml")
+    main_save_dir = config['run']['save_dir']
+    os.makedirs(main_save_dir, exist_ok=True)
+    save_config(config, f"{main_save_dir}/config.yaml")
 
     set_seed()
 
@@ -145,10 +146,11 @@ def execute(config):
     num_classes = dataset.num_classes
     evaluation = loader(config, 'evaluation', dataset=dataset, cfg_dataloader=config['data_loader'], num_classes=num_classes)
     final_res = []
+    final_val = []
     cms = []
     for tr_dataloader, vl_dataloader, te_dataloader, fold in evaluation.next():
         print(f"~~~~~~~~~~~~~~~ Fold {fold}/{evaluation.count()-1} ~~~~~~~~~~~~~~~~~")
-        save_dir = f"{config['run']['save_dir']}/{fold}"
+        save_dir = f"{main_save_dir}/{fold}"
         os.makedirs(save_dir, exist_ok=True)
         # g = torch.Generator()
         # g.manual_seed(0)
@@ -205,14 +207,28 @@ def execute(config):
             )
             log_model(experiment, best_model, model_name=f"Model_f{fold}")
 
+        with experiment.validate():
+            vl_metrics = res['best_result']['vl_metrics']
+            val_metrics_dic = {k.replace("valid_", ""): v for k, v in vl_metrics.items()}
+            val_metrics_dic['fold'] = fold
+            val_metrics_dic['vl_loss'] = res['vl_loss']
+            val_metrics_dic['tr_loss'] = res['tr_loss']
+            experiment.log_metrics(metrics, prefix=f"best_val_{fold}")
+            final_val.append(val_metrics_dic)
+            df = pd.DataFrame([val_metrics_dic]).set_index("fold")
+            print(f'best val fold {fold}')
+            display(df)
+            with open(f"{save_dir}/val.json", 'w') as f:
+                json.dump(metrics_dic, f, indent=4)
+
         with experiment.test():
             te_metrics = test(best_model, te_dataloader, num_classes, config)
             metrics = serialize_metrics(te_metrics.compute())
             cm = metrics.pop('test_ConfusionMatrix')
             cms.append(cm)
+            metrics['val_loss'] = res['best_result']['vl_loss']
             experiment.log_metrics(metrics, prefix=f"{fold}")
             experiment.log_confusion_matrix(matrix=cm, file_name=f"test_{fold}", title=f"test_{fold}", labels=dataset.class_names)
-
             # print("TEST====", metrics)
             metrics_dic = {k.replace("test_", ""): v for k, v in metrics.items()}
             metrics_dic = {'fold': fold, **metrics_dic}
@@ -227,20 +243,32 @@ def execute(config):
 
         # display(df)
             experiment.log_table(f"result{fold}.json", tabular_data=df, headers=True)
+            df_cm = pd.DataFrame(cm, index=dataset.class_names, columns=dataset.class_names)
+            ConfusionMatrixDisplay(cm, display_labels=dataset.class_names).plot()
+            plt.savefig(save_dir + '/confusion_matrix.png')
 
     avg_cm = np.average(cms, axis=0)
-    df_cm = pd.DataFrame(cm, index=dataset.class_names, columns=dataset.class_names)
+    df_cm = pd.DataFrame(avg_cm, index=dataset.class_names, columns=dataset.class_names)
     print(df_cm)
     ConfusionMatrixDisplay(avg_cm, display_labels=dataset.class_names).plot()
-    plt.savefig(save_dir + '/confusion_matrix.png')
-    experiment.log_confusion_matrix(matrix=avg_cm, title=f"avg_{fold}", labels=dataset.class_names)
+    plt.savefig(main_save_dir + '/confusion_matrix.png')
+    experiment.log_confusion_matrix(matrix=avg_cm, title=f"avg", file_name="avg", labels=dataset.class_names)
+
+    df = pd.DataFrame(final_val).set_index("fold")
+    df.loc['avg'] = df.mean()
+    df.to_csv(f"{main_save_dir}/full_val.csv")
+    print('avg val')
+    display(df)
+    experiment.log_table(f"result_val.json", tabular_data=df, headers=True)
 
     df = pd.DataFrame(final_res).set_index("fold")
     df.loc['avg'] = df.mean()
-    df.to_csv(f"{config['run']['save_dir']}/full_test.csv")
+    df.to_csv(f"{main_save_dir}/full_test.csv")
+    print('avg test')
     display(df)
-    experiment.log_table(f"result_full.json", tabular_data=df, headers=True)
-    with open(config['run']['save_dir'] + "/completed", 'w') as f:
+
+    experiment.log_table(f"result_test.json", tabular_data=df, headers=True)
+    with open(f"{main_save_dir}/completed", 'w') as f:
         f.write("1")
 
 
@@ -396,7 +424,8 @@ def train(
         'id': save_file_id,
         'config': config,
         'epochs_info': epochs_info,
-        'best_result': best_result
+        'best_result': best_result,
+        'best_vl_loss': best_vl_loss
     }
     experiment.log_curve("train_loss_{fold}", [i for i, e in enumerate(epochs_info)], [e['tr_loss'] for e in epochs_info])
     experiment.log_curve("val_loss_{fold}", [i for i, e in enumerate(epochs_info)], [e['vl_loss'] for e in epochs_info])
