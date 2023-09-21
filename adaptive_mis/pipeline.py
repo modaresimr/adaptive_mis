@@ -1,4 +1,10 @@
 from __future__ import print_function, division
+import comet_ml
+from comet_ml import Experiment
+from comet_ml.integration.pytorch import log_model
+from comet_ml import ConfusionMatrix, Experiment, init
+from comet_ml.integration.pytorch import log_model
+
 from sklearn.metrics import ConfusionMatrixDisplay
 
 from IPython.display import display
@@ -9,11 +15,6 @@ import csv
 from copy import deepcopy
 from PIL import Image
 import cv2
-import comet_ml
-from comet_ml import Experiment
-from comet_ml.integration.pytorch import log_model
-from comet_ml import ConfusionMatrix, Experiment, init
-from comet_ml.integration.pytorch import log_model
 import datetime
 import random
 import string
