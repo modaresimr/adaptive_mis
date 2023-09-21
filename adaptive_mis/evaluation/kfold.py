@@ -1,5 +1,6 @@
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Subset, random_split
+from sklearn.model_selection import KFold as SKFold
 
 
 class KFold:
@@ -17,7 +18,7 @@ class KFold:
         train_val_dataset, test_dataset = train_test_split(self.dataset, test_size=self.test_size, random_state=self.seed)
         test_loader = DataLoader(test_dataset, **self.cfg_dataloader['test'])
         # Define the number of splits for k-fold cross-validation
-        kfold = KFold(n_splits=self.k, shuffle=True)
+        kfold = SKFold(n_splits=self.k, shuffle=True)
         for fold, (train_ids, val_ids) in enumerate(kfold.split(train_val_dataset)):
             train_dataset = Subset(train_val_dataset, train_ids)
             val_dataset = Subset(train_val_dataset, val_ids)
