@@ -1,5 +1,5 @@
 class: adaptive_mis.evaluation.KFold
-title: "Split"
+title: "5Fold"
 params:
   seed: 1
   k: 5

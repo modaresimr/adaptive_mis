@@ -357,7 +357,7 @@ def train(
     best_vl_loss = np.Inf
     early_stopper = EarlyStopping(monitor='vl_loss', mode='min', verbose=1, patience=20, restore_best_weights=True)
     fieldnames = ['epoch', 'tr_loss', 'vl_loss']  # Add more field names based on your metrics
-    csv_logger = CSVLogger(f'{save_dir}/training_log.csv', fieldnames=fieldnames, separator=';', append=True)
+    csv_logger = CSVLogger(f'{save_dir}/training_log.csv', fieldnames=fieldnames, separator=',', append=True)
     tqdmcallback = TqdmCallback(verbose=1)
     tqdmcallback.set_params({'epochs': epochs, 'steps': len(tr_dataloader)})
 
