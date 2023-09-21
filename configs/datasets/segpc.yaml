@@ -1,0 +1,7 @@
+title: "SegPC2021"
+class: "adaptive_mis.dataset.SegPC2021Dataset"
+params:
+  datadir: "datasets/SegPC2021"
+  image_size: 224
+  crop_nucleus: true
+  crop_scale: 2.5

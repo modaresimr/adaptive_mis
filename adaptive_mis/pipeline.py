@@ -83,7 +83,7 @@ def log_sample_image(dataloader, mode):
         img = sample['image']
         msk = sample['mask']
         # show_sbs(img[0], msk[0, 1])
-        experiment.log_image(img[0], image_channels="first", name=f"{mode}/img",)
+        experiment.log_image(img[0][:3, :, :], image_channels="first", name=f"{mode}/img",)
         experiment.log_image(msk[0], image_channels="first", name=f"{mode}/gt")
         break
 
@@ -288,7 +288,7 @@ def process_batch(batch_data, model, device, num_classes, config, criterion=None
     imgs = batch_data['image'].to(device)
     msks = batch_data['mask'].to(device)
     preds = model(imgs)
-
+    # print(preds.shape, msks.shape)
     if criterion:
         loss = criterion(preds, msks)
     else:
