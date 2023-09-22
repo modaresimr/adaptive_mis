@@ -62,8 +62,6 @@ class SegPC2021Dataset(Dataset):
         Y = []
         meta = []
         for xi, xp in enumerate(tqdm(x_path_list)):
-            if (xi > 6):
-                continue
             fn = xp.replace("\\", "/").split('/')[-1].split('.bmp')[0]
             img = self.get_orig_img(xp)
             ys = self.get_orig_msk(fn)

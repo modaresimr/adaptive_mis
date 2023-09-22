@@ -12,12 +12,10 @@ configs=(
 "configs/models/multiresunet.yaml"
 "./configs/models/acda_uctransnet.yaml"
 )
-configs=(
-"./configs/models/adapt_uctransnet.yaml"
-)
+#configs=("./configs/models/adapt_uctransnet.yaml")
 mkdir -p logs
 
-dataset=./configs/datasets/isic.yaml
+dataset=./configs/datasets/segpc.yaml
 
 for conf in "${configs[@]}"; do
     while : ; do
