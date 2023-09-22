@@ -301,7 +301,7 @@ def process_batch(batch_data, model, device, num_classes, config, criterion=None
     msks_ = torch.argmax(msks, 1, keepdim=False)
 
     if "SegPC2021" in config['dataset']['class']:
-        not_nucs = torch.where(imgs[-1, :, :, :] > 0, 0, 1)
+        not_nucs = torch.where(imgs[:, -1, :, :] > 0, 0, 1)
         preds_ = preds_ * not_nucs
         msks_ = (torch.tensor(msks_) * not_nucs).int()
 

@@ -14,10 +14,11 @@ from tqdm import tqdm
 
 
 class SegPC2021Dataset(Dataset):
-    def __init__(self, datadir, image_size, crop_scale, crop_nucleus=True, one_hot=True, **kwargs):
+    def __init__(self, datadir, image_size, crop_scale, crop_nucleus=True, transform=True, one_hot=True, **kwargs):
         self.one_hot = one_hot
         # pre-set variables
         self.dataset_dir = datadir
+        self.transform = transform
         self.image_size = image_size
         self.scale = crop_scale
         self.crop_nucleus = crop_nucleus
@@ -26,7 +27,7 @@ class SegPC2021Dataset(Dataset):
         self.base_cache_file = f"{datadir}/cache/c{crop_nucleus}_{crop_scale}_{image_size}/"
         os.makedirs(self.base_cache_file, exist_ok=True)
 
-        if not os.path.exists(f'{self.base_cache_file}/meta.npy'):
+        if 1 or not os.path.exists(f'{self.base_cache_file}/meta.npy'):
             self.convert()
         self.X = torch.tensor(np.load(f'{self.base_cache_file}/X.npy').astype(np.float32))
         self.Y = torch.tensor(np.load(f'{self.base_cache_file}/Y.npy').astype(np.float32))
@@ -34,14 +35,23 @@ class SegPC2021Dataset(Dataset):
 
         self.in_channels = self.X[0].shape[0]
 
+        self.img_transform = transforms.Compose([
+            # transforms.Normalize(mean=[0.5, 0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5, 0.5]),
+        ])
+        self.msk_transform = transforms.Compose([
+            # transforms.Normalize(mean=[0.5], std=[0.5])
+        ])
+
     def convert(self):
-        img_transforms = transforms.Compose([
+        size_transforms = transforms.Compose([
             transforms.ToTensor(),
             transforms.Resize(
                 size=[self.image_size, self.image_size],
-                interpolation=transforms.functional.InterpolationMode.BILINEAR
-            )
+                interpolation=transforms.functional.InterpolationMode.BILINEAR,
+                antialias=True
+            ),
         ])
+
         #         build_segpc_dataset(
         #             input_size = self.input_size,
         #             scale = self.scale,
@@ -62,6 +72,8 @@ class SegPC2021Dataset(Dataset):
         Y = []
         meta = []
         for xi, xp in enumerate(tqdm(x_path_list)):
+            if xi > 6:
+                continue
             fn = xp.replace("\\", "/").split('/')[-1].split('.bmp')[0]
             img = self.get_orig_img(xp)
             ys = self.get_orig_msk(fn)
@@ -71,9 +83,10 @@ class SegPC2021Dataset(Dataset):
                     nmsk = y[:, :, 1]
                     timg, tnmsk, tcmsk = do_crop_nucleus(img, cmsk, nmsk, self.scale)
                     timg_with_nucleus = np.concatenate([timg, np.expand_dims(tnmsk, -1)], -1)
-                    timg_with_nucleus = img_transforms(timg_with_nucleus)
-                    timg_with_nucleus = (timg_with_nucleus - timg_with_nucleus.min()) / (timg_with_nucleus.max() - timg_with_nucleus.min())
-                    tcmsk = img_transforms(tcmsk)
+                    timg_with_nucleus = size_transforms(timg_with_nucleus)
+                    timg_with_nucleus[-1, ...] = timg_with_nucleus[-1, ...] > 0
+                    # timg_with_nucleus = (timg_with_nucleus - timg_with_nucleus.min()) / (timg_with_nucleus.max() - timg_with_nucleus.min())
+                    tcmsk = size_transforms(tcmsk) > 0
                     X.append(timg_with_nucleus.numpy())
                     Y.append(tcmsk.numpy())
                     meta.append(f'{fn}_{i}')
@@ -128,7 +141,11 @@ class SegPC2021Dataset(Dataset):
         img = self.X[idx]
         msk = self.Y[idx]
         meta = self.meta[idx]
+        if self.transform:
+            img = self.img_transform(img)
+            msk = self.msk_transform(msk)
         if self.one_hot:
+            msk = torch.clamp(msk, min=0)
             msk = F.one_hot(torch.squeeze(msk).to(torch.int64), num_classes=self.num_classes)
             msk = torch.moveaxis(msk, -1, 0).to(torch.float)
         sample = {'image': img, 'mask': msk, 'id': meta}

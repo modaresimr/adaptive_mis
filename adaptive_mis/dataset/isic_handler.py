@@ -51,26 +51,26 @@ class ISIC2018Dataset(Dataset):
         self.one_hot = one_hot
         self.in_channels = 3
         self.num_classes = 2
-        self.convert()
+        if not os.path.exists(f"{self.data_dir}/X_tr_{self.image_size}x{self.image_size}.npy"):
+            self.convert()
+        self.X = torch.tensor(np.load(f"{self.data_dir}/X_tr_{self.image_size}x{self.image_size}.npy"))
+        self.Y = torch.tensor(np.load(f"{self.data_dir}/Y_tr_{self.image_size}x{self.image_size}.npy"))
+
+        self.img_transform = transforms.Compose([
+            transforms.Normalize(mean=[0.5, 0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5, 0.5]),
+        ])
+        self.msk_transform = transforms.Compose([
+
+            # transforms.Normalize(mean=[0.5], std=[0.5])
+        ])
 
     def convert(self):
-        INPUT_SIZE = self.image_size
-        if os.path.exists(f"{self.data_dir}/X_tr_{INPUT_SIZE}x{INPUT_SIZE}.npy"):
-            self.X = torch.tensor(np.load(f"{self.data_dir}/X_tr_{INPUT_SIZE}x{INPUT_SIZE}.npy"))
-            self.Y = torch.tensor(np.load(f"{self.data_dir}/Y_tr_{INPUT_SIZE}x{INPUT_SIZE}.npy"))
-            return
-        # transform for image
-        img_transform = transforms.Compose([
+        size_transforms = transforms.Compose([
             transforms.Resize(
-                size=[INPUT_SIZE, INPUT_SIZE],
-                interpolation=transforms.functional.InterpolationMode.BILINEAR
-            ),
-        ])
-        # transform for mask
-        msk_transform = transforms.Compose([
-            transforms.Resize(
-                size=[INPUT_SIZE, INPUT_SIZE],
-                interpolation=transforms.functional.InterpolationMode.NEAREST
+                transforms.ToTensor(),
+                size=[self.image_size, self.image_size],
+                interpolation=transforms.functional.InterpolationMode.BILINEAR,
+                antialias=True
             ),
         ])
 
@@ -78,37 +78,35 @@ class ISIC2018Dataset(Dataset):
         Y = []
         print("Converting Dataset...")
         for id in tqdm(self.data_ids):
-            img = self.get_img_by_id(id)
-            msk = self.get_msk_by_id(id)
-            if img_transform:
-                img = img_transform(img)
-                img = (img - img.min()) / (img.max() - img.min())
-
-            orig_mask = (msk - msk.min()) / (msk.max() - msk.min())
-
-            if msk_transform:
-                msk = msk_transform(msk)
-                msk = (msk - msk.min()) / (msk.max() - msk.min())
+            img = self.get_img_by_id_orig(id)
+            img = size_transforms(img)
             X.append(img)
+
+            msk = self.get_msk_by_id_orig(id)
+            msk = size_transforms(msk)
             Y.append(msk)
+
         self.X = torch.stack(X)
         self.Y = torch.stack(Y)
-        np.save(f"{self.data_dir}/X_tr_{INPUT_SIZE}x{INPUT_SIZE}.npy", self.X.numpy())
-        np.save(f"{self.data_dir}/Y_tr_{INPUT_SIZE}x{INPUT_SIZE}.npy", self.Y.numpy())
+        np.save(f"{self.data_dir}/X_tr_{self.image_size}x{self.image_size}.npy", self.X.numpy())
+        np.save(f"{self.data_dir}/Y_tr_{self.image_size}x{self.image_size}.npy", self.Y.numpy())
 
-    def get_img_by_id(self, id):
-        if self.X is not None:
-            return self.X[id]
+    def get_img_by_id_orig(self, id):
         img_dir = os.path.join(self.imgs_dir, f"{self.data_prefix}{id}.{self.input_fex}")
         img = read_image(img_dir, ImageReadMode.RGB)
         return img
 
-    def get_msk_by_id(self, id):
-        if self.Y is not None:
-            return self.Y[id]
+    def get_msk_by_id_orig(self, id):
         msk_dir = os.path.join(self.msks_dir, f"{self.data_prefix}{id}{self.target_postfix}.{self.target_fex}")
         msk = read_image(msk_dir, ImageReadMode.GRAY)
-        return msk
+
+        return msk > 0
+
+    def get_msk_by_id(self, id):
+        return self.msk_transform(self.Y[id])
+
+    def get_img_by_id(self, id):
+        return self.img_transform(self.X[id])
 
     def __len__(self):
         return len(self.data_ids)
@@ -120,6 +118,7 @@ class ISIC2018Dataset(Dataset):
         msk = self.get_msk_by_id(data_id)
 
         if self.one_hot:
+            msk = torch.clamp(msk, min=0)
             msk = F.one_hot(torch.squeeze(msk).to(torch.int64))
             msk = torch.moveaxis(msk, -1, 0).to(torch.float)
 
