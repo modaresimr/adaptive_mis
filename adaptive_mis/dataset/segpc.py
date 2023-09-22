@@ -72,7 +72,7 @@ class SegPC2021Dataset(Dataset):
                     timg, tnmsk, tcmsk = do_crop_nucleus(img, cmsk, nmsk, self.scale)
                     timg_with_nucleus = np.concatenate([timg, np.expand_dims(tnmsk, -1)], -1)
                     timg_with_nucleus = img_transforms(timg_with_nucleus)
-
+                    timg_with_nucleus = (timg_with_nucleus - timg_with_nucleus.min()) / (timg_with_nucleus.max() - timg_with_nucleus.min())
                     tcmsk = img_transforms(tcmsk)
                     X.append(timg_with_nucleus.numpy())
                     Y.append(tcmsk.numpy())
