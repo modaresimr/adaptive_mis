@@ -63,6 +63,7 @@ class ISIC2018Dataset(Dataset):
 
             # transforms.Normalize(mean=[0.5], std=[0.5])
         ])
+        self.transform = True
 
     def convert(self):
         size_transforms = transforms.Compose([
@@ -103,10 +104,14 @@ class ISIC2018Dataset(Dataset):
         return msk > 0
 
     def get_msk_by_id(self, id):
-        return self.msk_transform(self.Y[id])
+        if self.transform:
+            return self.msk_transform(self.Y[id])
+        return self.Y[id]
 
     def get_img_by_id(self, id):
-        return self.img_transform(self.X[id])
+        if self.transform:
+            return self.img_transform(self.X[id])
+        return self.X[id]
 
     def __len__(self):
         return len(self.data_ids)
