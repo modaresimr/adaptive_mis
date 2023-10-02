@@ -57,7 +57,7 @@ class ISIC2018Dataset(Dataset):
         self.Y = torch.tensor(np.load(f"{self.data_dir}/Y_tr_{self.image_size}x{self.image_size}.npy"))
 
         self.img_transform = transforms.Compose([
-            transforms.Normalize(mean=[0.5, 0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5, 0.5]),
+            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
         ])
         self.msk_transform = transforms.Compose([
 
