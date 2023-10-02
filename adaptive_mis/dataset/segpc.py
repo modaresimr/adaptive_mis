@@ -27,7 +27,7 @@ class SegPC2021Dataset(Dataset):
         self.base_cache_file = f"{datadir}/cache/c{crop_nucleus}_{crop_scale}_{image_size}/"
         os.makedirs(self.base_cache_file, exist_ok=True)
 
-        if 1 or not os.path.exists(f'{self.base_cache_file}/meta.npy'):
+        if not os.path.exists(f'{self.base_cache_file}/meta.npy'):
             self.convert()
         self.X = torch.tensor(np.load(f'{self.base_cache_file}/X.npy').astype(np.float32))
         self.Y = torch.tensor(np.load(f'{self.base_cache_file}/Y.npy').astype(np.float32))
@@ -72,8 +72,7 @@ class SegPC2021Dataset(Dataset):
         Y = []
         meta = []
         for xi, xp in enumerate(tqdm(x_path_list)):
-            if xi > 6:
-                continue
+
             fn = xp.replace("\\", "/").split('/')[-1].split('.bmp')[0]
             img = self.get_orig_img(xp)
             ys = self.get_orig_msk(fn)
