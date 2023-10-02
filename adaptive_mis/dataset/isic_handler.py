@@ -113,9 +113,9 @@ class ISIC2018Dataset(Dataset):
 
     def __getitem__(self, idx):
         # data_id = self.data_ids[idx]
-        data_id = idx
+
         orig_img = self.X[idx]
-        orig_msk = self.Y[id]
+        orig_msk = self.Y[idx]
 
         img = self.img_transform(orig_img) if self.transform else orig_img
         msk = self.msk_transform(orig_msk) if self.transform else orig_msk
@@ -125,7 +125,7 @@ class ISIC2018Dataset(Dataset):
             msk = F.one_hot(torch.squeeze(msk).to(torch.int64))
             msk = torch.moveaxis(msk, -1, 0).to(torch.float)
 
-        return {'image': img, 'mask': msk, 'id': data_id, 'orig_img': orig_img, 'orig_msk': orig_msk}
+        return {'image': img, 'mask': msk, 'id': idx, 'orig_img': orig_img, 'orig_msk': orig_msk}
 
     def summary(self):
         print(f"Number of images: {len(self)}")
