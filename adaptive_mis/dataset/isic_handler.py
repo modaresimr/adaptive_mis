@@ -108,26 +108,24 @@ class ISIC2018Dataset(Dataset):
             return self.msk_transform(self.Y[id])
         return self.Y[id]
 
-    def get_img_by_id(self, id):
-        if self.transform:
-            return self.img_transform(self.X[id])
-        return self.X[id]
-
     def __len__(self):
         return len(self.data_ids)
 
     def __getitem__(self, idx):
         # data_id = self.data_ids[idx]
         data_id = idx
-        img = self.get_img_by_id(data_id)
-        msk = self.get_msk_by_id(data_id)
+        orig_img = self.X[idx]
+        orig_msk = self.Y[id]
+
+        img = self.img_transform(orig_img) if self.transform else orig_img
+        msk = self.msk_transform(orig_msk) if self.transform else orig_msk
 
         if self.one_hot:
             msk = torch.clamp(msk, min=0)
             msk = F.one_hot(torch.squeeze(msk).to(torch.int64))
             msk = torch.moveaxis(msk, -1, 0).to(torch.float)
 
-        return {'image': img, 'mask': msk, 'id': data_id}
+        return {'image': img, 'mask': msk, 'id': data_id, 'orig_img': orig_img, 'orig_msk': orig_msk}
 
     def summary(self):
         print(f"Number of images: {len(self)}")

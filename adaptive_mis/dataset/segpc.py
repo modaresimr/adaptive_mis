@@ -138,17 +138,18 @@ class SegPC2021Dataset(Dataset):
         return len(self.X)
 
     def __getitem__(self, idx):
-        img = self.X[idx]
-        msk = self.Y[idx]
+        orig_img = self.X[idx]
+        orig_msk = self.Y[idx]
         meta = self.meta[idx]
-        if self.transform:
-            img = self.img_transform(img)
-            msk = self.msk_transform(msk)
+
+        img = self.img_transform(orig_img) if self.transform else orig_img
+        msk = self.msk_transform(orig_msk) if self.transform else orig_msk
+
         if self.one_hot:
             msk = torch.clamp(msk, min=0)
             msk = F.one_hot(torch.squeeze(msk).to(torch.int64), num_classes=self.num_classes)
             msk = torch.moveaxis(msk, -1, 0).to(torch.float)
-        sample = {'image': img, 'mask': msk, 'id': meta}
+        sample = {'image': img, 'mask': msk, 'id': meta, 'orig_img': orig_img, 'orig_msk': orig_msk}
         return sample
 
     def summary(self):
