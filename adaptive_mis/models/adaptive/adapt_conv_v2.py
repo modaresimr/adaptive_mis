@@ -20,7 +20,7 @@ except:
 from torch.nn.utils import spectral_norm
 
 
-class AdaptiveConv(nn.Module):
+class AdaptiveConv2(nn.Module):
     __constants__ = ['kernel_size', 'stride', 'padding', 'num_bases',
                      'bases_grad', 'mode']
 
@@ -32,7 +32,7 @@ class AdaptiveConv(nn.Module):
         self.adaptive_kernel_max_size = adaptive_kernel_max_size
         self.in_channels = in_channels
         self.inter_kernel_size = inter_kernel_size
-
+        self.features = 6
         self.kernel_size = adaptive_kernel_max_size
         self.stride = stride
         self.padding = adaptive_kernel_max_size // 2
@@ -46,22 +46,33 @@ class AdaptiveConv(nn.Module):
 
         bases = bases_list(adaptive_kernel_min_size, adaptive_kernel_max_size, num_bases)
         self.register_buffer('bases', torch.Tensor(bases).float())
-        self.tem_size = len(bases)
+        self.tem_size = len(bases) // num_bases
+        # print("bbbbb", self.tem_size)
+        # bases_size = num_bases * len(bases)
+        bases_size = len(bases)
 
-        bases_size = num_bases * len(bases)
+        inter = inter or in_channels
 
-        inter = max(64, bases_size // 2) if not inter else inter
-        self.new_out_channels = self.in_channels * self.num_bases
+        self.new_out_channels = self.features * bases_size
+        # print("out", self.new_out_channels)
         self.out_channels = self.new_out_channels
-        self.bases_net = nn.Sequential(
-            nn.Conv2d(in_channels, inter, kernel_size=inter_kernel_size, padding=inter_kernel_size // 2, stride=stride),
-            nn.BatchNorm2d(inter),
-            nn.Tanh(),
-            nn.Conv2d(inter, bases_size, kernel_size=inter_kernel_size, padding=inter_kernel_size // 2),
-            nn.BatchNorm2d(bases_size),
+        self.bases_net = nn.Sequential(nn.Conv2d(in_channels, inter, kernel_size=inter_kernel_size, padding=inter_kernel_size // 2, stride=stride),
+                                       nn.BatchNorm2d(inter),
+                                       nn.Tanh(),)
+        for i in range(1, len(bases)):
+            self.bases_net.append(nn.Sequential(
+                nn.Conv2d(inter, inter, kernel_size=inter_kernel_size, padding=inter_kernel_size // 2, stride=stride),
+                nn.BatchNorm2d(inter),
+                nn.Tanh(),
+            ))
+
+        self.bases_net.append(nn.Sequential(
+            nn.Conv2d(inter, self.out_channels, kernel_size=inter_kernel_size, padding=inter_kernel_size // 2),
+            nn.BatchNorm2d(self.out_channels),
             nn.Tanh()
         )
-
+        )
+        # print(self.bases_net)
         self.coef = Parameter(torch.Tensor(self.out_channels, in_channels * num_bases, 1, 1))
 
         if bias:
@@ -85,7 +96,7 @@ class AdaptiveConv(nn.Module):
 
         drop_rate = self.drop_rate
         bases = self.bases_net(F.dropout2d(input, p=drop_rate, training=self.training)).view(
-            N, self.num_bases, self.tem_size, H // self.stride, W // self.stride)  # BxMxMxHxW
+            N, self.features, len(self.bases), H // self.stride, W // self.stride)  # BxMxMxHxW
 
         # self.bases_coef = bases.cpu().data.numpy()
         bases = torch.einsum('bmkhw, kl->bmlhw', bases, self.bases)
@@ -141,13 +152,13 @@ def bases_list(adaptive_kernel_min_size, adaptive_kernel_max_size, num_bases):
 
 
 if __name__ == '__main__':
-    layer = AdaptiveConv(3, inter=0, inter_kernel_size=3, padding=1, stride=1, bias=True,
-                         adaptive_kernel_max_size=9, adaptive_kernel_min_size=3)  # .cuda()
+    layer = AdaptiveConv2(3, inter=3, inter_kernel_size=3, padding=1, stride=1, bias=True,
+                          adaptive_kernel_max_size=9, adaptive_kernel_min_size=3)  # .cuda()
     print(layer.out_channels)
 
     normal_layer = nn.Sequential(
-        nn.Conv2d(3, layer.out_channels, kernel_size=9, padding=1, stride=1, bias=True,),
-        nn.Conv2d(layer.out_channels, layer.out_channels, kernel_size=7, padding=1, stride=1, bias=True,),
+        nn.Conv2d(3, 3, kernel_size=9, padding=1, stride=1, bias=True,),
+        # nn.Conv2d(layer.out_channels, layer.out_channels, kernel_size=7, padding=1, stride=1, bias=True,),
         # nn.Conv2d(3, layer.out_channels, kernel_size=5, padding=1, stride=1, bias=True,),
         # nn.Conv2d(3, layer.out_channels, kernel_size=3, padding=1, stride=1, bias=True,),
         # nn.Conv2d(1, 1, kernel_size=7, padding=1, stride=1, bias=True,),

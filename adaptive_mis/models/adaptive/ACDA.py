@@ -139,10 +139,18 @@ class Conv_ACDA(nn.Module):
 
 
 if __name__ == '__main__':
-    layer = Conv_ACDA(3, 32, kernel_size=3, inter_kernel_size=5, padding=1, stride=1, bias=True).cuda()
-    data = torch.randn(100, 3, 224, 224).cuda()
+    layer = Conv_ACDA(1, 1, adaptive_kernel_max_size=9, adaptive_kernel_min_size=3, inter_kernel_size=3, padding=1, stride=1, bias=True)
     print(sum(p.numel() for p in layer.parameters() if p.requires_grad))
-    import time
-    start = time.time()
-    print(layer(data).shape)
-    print("time", time.time() - start)
+    normal_layer = nn.Sequential(
+        nn.Conv2d(1, 1, kernel_size=9, padding=1, stride=1, bias=True,),
+        # nn.Conv2d(1, 1, kernel_size=7, padding=1, stride=1, bias=True,),
+        # nn.Conv2d(1, 1, kernel_size=5, padding=1, stride=1, bias=True,),
+        # nn.Conv2d(1, 1, kernel_size=3, padding=1, stride=1, bias=True,)
+    )
+    print(sum(p.numel() for p in normal_layer .parameters() if p.requires_grad))
+
+    # data = torch.randn(10, 3, 224, 224)
+    # import time
+    # start = time.time()
+    # print(layer(data).shape)
+    # print("time", time.time() - start)

@@ -1,4 +1,4 @@
-class: "adaptive_mis.models.adaptive.AdaptiveConv2"
+class: "adaptive_mis.models.adaptive.AdaptiveConv"
 title: "AdaptiveConv"
 params:
   adaptive_kernel_min_size: 3
