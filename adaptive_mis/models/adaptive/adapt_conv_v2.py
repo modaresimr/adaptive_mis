@@ -24,7 +24,7 @@ class AdaptiveConv2(nn.Module):
     __constants__ = ['kernel_size', 'stride', 'padding', 'num_bases',
                      'bases_grad', 'mode']
 
-    def __init__(self, in_channels, inter=0, adaptive_kernel_max_size=3, adaptive_kernel_min_size=3, inter_kernel_size=3, stride=1, padding=0,
+    def __init__(self, in_channels,features=6, inter=0, adaptive_kernel_max_size=3, adaptive_kernel_min_size=3, inter_kernel_size=3, stride=1, padding=0,
                  num_bases=6, bias=True, bases_grad=True, dilation=1, groups=1,
                  mode='mode1', bases_drop=None, drop_rate=0.0, **kwargs):
         super().__init__()
@@ -32,7 +32,7 @@ class AdaptiveConv2(nn.Module):
         self.adaptive_kernel_max_size = adaptive_kernel_max_size
         self.in_channels = in_channels
         self.inter_kernel_size = inter_kernel_size
-        self.features = 6
+        self.features = features
         self.kernel_size = adaptive_kernel_max_size
         self.stride = stride
         self.padding = adaptive_kernel_max_size // 2
@@ -53,9 +53,10 @@ class AdaptiveConv2(nn.Module):
 
         inter = inter or in_channels
 
-        self.new_out_channels = self.features * bases_size
+        self.generator_out_channels= self.features * bases_size
         # print("out", self.new_out_channels)
-        self.out_channels = self.new_out_channels
+        self.out_channels = self.in_channels * self.num_bases
+        
         self.bases_net = nn.Sequential(nn.Conv2d(in_channels, inter, kernel_size=inter_kernel_size, padding=inter_kernel_size // 2, stride=stride),
                                        nn.BatchNorm2d(inter),
                                        nn.Tanh(),)
@@ -67,16 +68,16 @@ class AdaptiveConv2(nn.Module):
             ))
 
         self.bases_net.append(nn.Sequential(
-            nn.Conv2d(inter, self.out_channels, kernel_size=inter_kernel_size, padding=inter_kernel_size // 2),
-            nn.BatchNorm2d(self.out_channels),
+            nn.Conv2d(inter, self.generator_out_channels, kernel_size=inter_kernel_size, padding=inter_kernel_size // 2),
+            nn.BatchNorm2d(self.generator_out_channels),
             nn.Tanh()
         )
         )
         # print(self.bases_net)
-        self.coef = Parameter(torch.Tensor(self.out_channels, in_channels * num_bases, 1, 1))
+        self.coef = Parameter(torch.Tensor(self.generator_out_channels, in_channels * num_bases, 1, 1))
 
         if bias:
-            self.bias = Parameter(torch.Tensor(self.out_channels))
+            self.bias = Parameter(torch.Tensor(self.generator_out_channels))
         else:
             self.register_parameter('bias', None)
         self.reset_parameters()
@@ -177,9 +178,9 @@ if __name__ == '__main__':
     print("normal_time", time.time() - start)
 
 
-model = nn.Sequential(
-    nn.Conv2d(1, 1, kernel_size=3, padding=1, stride=1, bias=True,),
-    nn.Conv2d(1, 1, kernel_size=3, padding=1, stride=1, bias=True,),
-    # nn.Conv2d(1, 1, kernel_size=3, padding=1, stride=1, bias=True,),
-    nn.Conv2d(1, 12, kernel_size=3, padding=1, stride=1, bias=True,))
-sum(p.numel() for p in model.parameters() if p.requires_grad)
+    model = nn.Sequential(
+        nn.Conv2d(1, 1, kernel_size=3, padding=1, stride=1, bias=True,),
+        nn.Conv2d(1, 1, kernel_size=3, padding=1, stride=1, bias=True,),
+        # nn.Conv2d(1, 1, kernel_size=3, padding=1, stride=1, bias=True,),
+        nn.Conv2d(1, 12, kernel_size=3, padding=1, stride=1, bias=True,))
+    sum(p.numel() for p in model.parameters() if p.requires_grad)
