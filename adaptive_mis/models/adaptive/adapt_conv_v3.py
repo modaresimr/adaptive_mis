@@ -20,7 +20,7 @@ except:
 from torch.nn.utils import spectral_norm
 
 
-class AdaptiveConv2(nn.Module):
+class AdaptiveConv3(nn.Module):
     __constants__ = ['kernel_size', 'stride', 'padding', 'num_bases',
                      'bases_grad', 'mode']
 
